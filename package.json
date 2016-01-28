@@ -1,0 +1,22 @@
+{
+  "name": "vs_register",
+  "version": "1.0.0",
+  "description": "attempt to register to specified registrar",
+  "main": "app.js",
+  "dependencies": {
+    "debug": "^2.2.0",
+    "drachtio": "davehorton/drachtio.git#0.3.7",
+    "lodash": "^4.0.1",
+    "minimist": "^1.2.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sip",
+    "register",
+    "monitoring"
+  ],
+  "author": "Dave Horton",
+  "license": "ISC"
+}
