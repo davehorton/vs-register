@@ -1,13 +1,18 @@
 {
   "name": "vs_register",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "attempt to register to specified registrar",
   "main": "app.js",
   "dependencies": {
+    "async": "^1.5.2",
+    "bluebird": "^2.9.34",
     "debug": "^2.2.0",
     "drachtio": "davehorton/drachtio.git#0.3.9",
     "lodash": "^4.0.1",
-    "minimist": "^1.2.0"
+    "minimist": "^1.2.0",
+    "mongoose": "^4.1.2",
+    "vs-models": "davehorton/vs-models",
+    "winston": "^2.1.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

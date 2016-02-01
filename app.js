@@ -1,43 +1,68 @@
 'use strict' ;
 
+// Set default node environment to development
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 const drachtio = require('drachtio') ;
-const app = drachtio() ;
-const register = require('./lib/register') ;
+var app = drachtio() ;
+const config = app.config = require('./config/environment');
+const mongoose = require('mongoose');
 const argv = require('minimist')(process.argv.slice(2));
-const debug = require('debug')(process.argv[0]) ;
+const debug = app.debug = require('debug')(process.argv[0]) ;
+const winston = require('winston') ;
+var watcher ;
 
-if( !argv.user || !argv.password || !argv.domain ) {
-  console.error('usage: node app.js --domain yyyy.com --user f00 --password bar') ;
-  process.exit(-1) ;
-}
+var logger = app.logger = new winston.Logger({
+  transports: config.logger.transports
+});
 
-const uri = 'sip:' + argv.user + '@' + argv.domain ;
+const host = argv.address || config.drachtioServer.address ;
+const port = argv.port || config.drachtioServer.port ;
+const secret = argv.secret || config.drachtioServer.secret ;
 
 app.connect({
-  host: 'localhost',
-  port: 8022,
-  secret: 'cymru'
+  host: host,
+  port: port,
+  secret: secret
 }) ;
 
-app.on('connect', function(sipHost) {
-  debug(`listening on ${sipHost}`) ;
-  
-  doRegister() ;
-
+app.on('connect', function(err, hostport) {
+  if( err ) { throw err ; }
+  logger.info('connected to drachtio server at %s', hostport) ;
+})
+.on('error', function(err){
+  logger.warn(err.message ) ;
 }) ;
 
-function doRegister() {
-  register(app, {
-    uri: uri,
-    contact: '<' + uri + '>;expires=' + (argv.expires || 3600),
-    user: argv.user,
-    password: argv.password
-  }, function(err, results) {
-    if( err ) {
-      throw err ;
+// connect to mongo
+var connectWithRetry = function() {
+  return mongoose.connect(config.mongo.uri, config.mongo.options, function(err) {
+    if (err) {
+      logger.error('Failed to connect to mongo on startup - retrying in 5 sec', err);
+      setTimeout(connectWithRetry, 5000);
     }
-    console.log('%s: ', new Date(), results) ;
+  });
+};
+connectWithRetry();
 
-    setTimeout( doRegister, results.expires ? (results.expires - 5) * 1000 : 30000) ;
-  }) ;
-}
+// Populate DB with sample data
+if(config.seedDB) { require('./config/seed'); }
+
+mongoose.connection
+.on('error', function(err){
+  logger.error('mongoose connection error: ', err) ;
+})
+.on('connected', function() {
+    logger.info('connected to mongo at %s', config.mongo.uri) ;   
+    if( watcher ) {
+      watcher.stop() ;
+    }
+    const DbWatcher = require('./lib/db-watcher') ;
+    watcher = new DbWatcher() ;
+
+    watcher.start() ;   
+}) ;
+
+// Expose app
+exports = module.exports = app;
+
